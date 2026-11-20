@@ -12,7 +12,7 @@ const justPressed = {};
 window.addEventListener('keydown', e => {
   justPressed[e.code] = !keys[e.code];
   keys[e.code] = true;
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code))
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyB'].includes(e.code))
     e.preventDefault();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -288,6 +288,7 @@ let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let powerUpSpawned;
+let bombsLeft;
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -314,6 +315,7 @@ function initGame() {
   level  = 1;
   state  = 'playing';
   powerUpSpawned = false;
+  bombsLeft = 1;
   spawnAsteroids(4);
 }
 
@@ -364,6 +366,20 @@ function update(dt) {
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
+  }
+
+  // Bomba Nova
+  if (pressed('KeyB') && bombsLeft > 0) {
+    bombsLeft--;
+    for (const a of asteroids) {
+      score += POINTS[a.size];
+      explode(a.x, a.y, a.size * 8);
+      if (!powerUpSpawned && a.isCarrier) {
+        powerUps.push(new PowerUp(a.x, a.y));
+        powerUpSpawned = true;
+      }
+    }
+    asteroids = [];
   }
 
   ship.update(dt);
@@ -455,6 +471,39 @@ function drawHUD() {
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
+
+  // Icono Bomba Nova (top-right, debajo de vidas)
+  const bx = W - 22;
+  const by = 42;
+  ctx.save();
+  ctx.translate(bx, by);
+  if (bombsLeft > 0) {
+    ctx.strokeStyle = '#ffaa00';
+    ctx.fillStyle   = 'rgba(255,170,0,0.15)';
+  } else {
+    ctx.strokeStyle = '#444';
+    ctx.fillStyle   = 'transparent';
+  }
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(4, -6);
+  ctx.lineTo(7, -11);
+  ctx.stroke();
+  if (bombsLeft > 0) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(7, -12, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.font = '10px monospace';
+  ctx.fillStyle = bombsLeft > 0 ? '#ffaa00' : '#444';
+  ctx.textAlign = 'center';
+  ctx.fillText('B', 0, 4);
+  ctx.restore();
 
 }
 
